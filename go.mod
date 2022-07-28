@@ -1,4 +1,4 @@
-module klogs
+module github.com/ryantate13/klogs
 
 go 1.18
 

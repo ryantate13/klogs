@@ -18,10 +18,10 @@ import (
 	term "github.com/jwalton/go-supportscolor"
 	"github.com/mattn/go-isatty"
 
-	"klogs/args"
-	"klogs/exec"
-	"klogs/fn"
-	"klogs/logs"
+	"github.com/ryantate13/klogs/args"
+	"github.com/ryantate13/klogs/exec"
+	"github.com/ryantate13/klogs/fn"
+	"github.com/ryantate13/klogs/logs"
 )
 
 var (
@@ -76,11 +76,11 @@ func main() {
 			}, 0)
 			colBLen := len(example)
 			const (
-				header = 'h'
-				row    = 'r'
-				footer = 'f'
+				header = iota
+				row
+				footer
 			)
-			printSep := func(t rune) {
+			printSep := func(t int) {
 				var l, c, r string
 				switch t {
 				case header:

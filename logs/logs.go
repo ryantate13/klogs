@@ -12,9 +12,9 @@ import (
 	"github.com/alecthomas/chroma/quick"
 	"github.com/fatih/color"
 
-	"klogs/args"
-	"klogs/exec"
-	"klogs/fn"
+	"github.com/ryantate13/klogs/args"
+	"github.com/ryantate13/klogs/exec"
+	"github.com/ryantate13/klogs/fn"
 )
 
 type colorFunc = func(format string, a ...interface{}) string

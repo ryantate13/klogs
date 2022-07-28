@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"klogs/exec"
+	"github.com/ryantate13/klogs/exec"
 )
 
 type FakeExecutor struct {

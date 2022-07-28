@@ -9,7 +9,7 @@ import (
 	"github.com/ryantate13/hash-set"
 	"github.com/stretchr/testify/require"
 
-	"klogs/fn"
+	"github.com/ryantate13/klogs/fn"
 )
 
 func Test_optFlags(t *testing.T) {

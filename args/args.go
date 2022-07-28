@@ -7,7 +7,7 @@ import (
 
 	"github.com/ryantate13/hash-set"
 
-	"klogs/fn"
+	"github.com/ryantate13/klogs/fn"
 )
 
 func defaults() *Args {
@@ -87,7 +87,7 @@ type Args struct {
 func (a *Args) Usage() string {
 	return `klogs - Displays logs for kubernetes pods matching either a pod name query, a set of labels, or both
 
-Usage: klogs [flags] [options] <pod query>...
+Usage: klogs [flags] [options] <search terms>...
 
 Example: klogs -f service-one service-two # follow logs of all pods for service-one and service-two
 
@@ -105,17 +105,17 @@ Flags:
 	   | --list-themes    List all available JSON highlighting theme names and exit
 
 Options:
-	<pod name query>... One or more case-sensitive search terms for pod names. Pass "-" to read search terms from stdin. Default is to show logs for a pod if any term is a match 
-	-l | --label        Filter pods by one or more labels, pass additional -l arguments to add labels. Filtering is performed prior to name matching
-	-s | --since        Show logs only since this timestamp
-	   | --since-time   Only return logs after a specific date (RFC3339). Defaults to all logs. Only one of since-time / since may be used.
-	   | --tail         Lines of recent log file to display. Defaults to -1, showing all log lines.
-	-n | --namespace    Namespace pods must be in. Default is the default namespace for the cluster
-	-c | --container    Print the logs of this container
-	   | --limit-bytes  Maximum bytes of logs to return. Defaults to no limit.
-	-k | --kubeconfig   Path to kube config file. Defaults to value of env var KUBECONFIG or ~/.kube/config if not present
-	-C | --context      The name of the kubeconfig context to use
-	-t | --theme        Theme to use for JSON syntax highlighting. Default is "nord". See "--list-themes"
+	<search terms>...  One or more case-sensitive search terms for pod names. Pass "-" to read search terms from stdin. Default is to show logs for a pod if any term is a match 
+	-l | --label       Filter pods by one or more labels, pass additional -l arguments to add labels. Filtering is performed prior to name matching
+	-s | --since       Show logs only since this timestamp
+	   | --since-time  Only return logs after a specific date (RFC3339). Defaults to all logs. Only one of since-time / since may be used.
+	   | --tail        Lines of recent log file to display. Defaults to -1, showing all log lines.
+	-n | --namespace   Namespace pods must be in. Default is the default namespace for the cluster
+	-c | --container   Print the logs of this container
+	   | --limit-bytes Maximum bytes of logs to return. Defaults to no limit.
+	-k | --kubeconfig  Path to kube config file. Defaults to value of env var KUBECONFIG or ~/.kube/config if not present
+	-C | --context     The name of the kubeconfig context to use
+	-t | --theme       Theme to use for JSON syntax highlighting. Default is "nord". See "--list-themes"
 
 Environment Variables:
 	Example: KLOGS_NAMESPACE=foo KLOGS_CONTEXT=bar KLOGS_PREFIX=1 KLOGS_JSON=1 KLOGS_THEME=monokai klogs search-terms...
