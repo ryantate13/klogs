@@ -17,7 +17,7 @@ import (
 	"github.com/ryantate13/klogs/fn"
 )
 
-type colorFunc = func(format string, a ...interface{}) string
+type colorFunc func(format string, a ...interface{}) string
 
 var (
 	colors = []colorFunc{
@@ -36,8 +36,12 @@ var (
 )
 
 func mkError(err map[string]interface{}) error {
-	j, _ := json.Marshal(err)
+	j, _ := json.MarshalIndent(err, "", "  ")
 	return errors.New(string(j))
+}
+
+type pod struct {
+	Name, Namespace string
 }
 
 func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<-chan string, <-chan error, error) {
@@ -49,16 +53,16 @@ func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<
 	if opts.Context != "" {
 		kubectl = append(kubectl, "--context", opts.Context)
 	}
+	getPods := append(kubectl, "get", "pods", "-o", "custom-columns=:metadata.name,:metadata.namespace")
 	if opts.AllNamespaces {
-		kubectl = append(kubectl, "--all-namespaces")
+		getPods = append(getPods, "--all-namespaces")
 	} else if opts.Namespace != "" {
-		kubectl = append(kubectl, "--namespace", opts.Namespace)
+		getPods = append(getPods, "--namespace", opts.Namespace)
 	}
-	getPods := append(kubectl, "get", "pods", "-o", "custom-columns=:metadata.name")
 	for _, l := range opts.Label {
 		getPods = append(getPods, "-l", l)
 	}
-	pods, err := ex.Sync(ctx, getPods...)
+	nsPods, err := ex.Sync(ctx, getPods...)
 	if err != nil {
 		return nil, nil, mkError(map[string]interface{}{
 			"code":    "get_pods_error",
@@ -66,29 +70,31 @@ func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<
 			"error":   err.Error(),
 		})
 	}
-	pods = fn.Filter(pods, func(p string) bool {
-		// filter by label only
-		if len(opts.Query) == 0 {
-			return true
-		}
-		// all search terms must match
-		if opts.All {
+	pods := fn.Filter(
+		fn.Map(nsPods, func(s string) *pod {
+			f := strings.Fields(s)
+			return &pod{f[0], f[1]}
+		}), func(p *pod) bool {
+			// filter by label only
+			if len(opts.Query) == 0 {
+				return true
+			}
+			// all search terms must match
+			if opts.All {
+				return fn.Reduce(opts.Query, func(a bool, c string) bool {
+					return a && strings.Index(p.Name, c) != -1
+				}, true)
+			}
+			// default behavior - one or more search terms must match
 			return fn.Reduce(opts.Query, func(a bool, c string) bool {
-				return a && strings.Index(p, c) != -1
-			}, true)
-		}
-		// default behavior - one or more search terms must match
-		return fn.Reduce(opts.Query, func(a bool, c string) bool {
-			return a || strings.Index(p, c) != -1
-		}, false)
-	})
+				return a || strings.Index(p.Name, c) != -1
+			}, false)
+		})
 	if len(pods) == 0 {
 		return nil, nil, mkError(map[string]interface{}{
-			"code":                 "no_pods_found",
-			"error":                "no available pods match query terms",
-			"labels":               opts.Label,
-			"name_query":           opts.Query,
-			"all_terms_must_match": opts.All,
+			"code":  "no_pods_found",
+			"error": "no available pods match query terms",
+			"opts":  opts,
 		})
 	}
 	wg := &sync.WaitGroup{}
@@ -125,8 +131,8 @@ func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<
 	if opts.LimitBytes != "" {
 		logCmd = append(logCmd, "--limit-bytes", opts.LimitBytes)
 	}
-	for i, pod := range pods {
-		podLogCmd := append(logCmd, pod)
+	for i, p := range pods {
+		podLogCmd := append(logCmd, "-n", p.Namespace, p.Name)
 		colorize := noColor
 		if tty != "" {
 			colorize = colors[i%len(colors)]
@@ -137,7 +143,7 @@ func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<
 				"code":    "logs_error",
 				"command": podLogCmd,
 				"error":   err.Error(),
-				"pod":     pod,
+				"pod":     p,
 			})
 		}
 		prettyJSON := opts.JSON && tty != ""
