@@ -47,11 +47,10 @@ type pod struct {
 func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<-chan string, <-chan error, error) {
 	logChan := make(chan string)
 	kubectl := []string{"kubectl"}
-	if opts.KubeConfig != "" {
-		kubectl = append(kubectl, "--kubeconfig", opts.KubeConfig)
-	}
-	if opts.Context != "" {
-		kubectl = append(kubectl, "--context", opts.Context)
+	for k, v := range map[string]string{"--kubeconfig": opts.KubeConfig, "--context": opts.Context} {
+		if v != "" {
+			kubectl = append(kubectl, k, v)
+		}
 	}
 	getPods := append(kubectl, "get", "pods", "-o", "custom-columns=:metadata.name,:metadata.namespace")
 	if opts.AllNamespaces {
@@ -101,35 +100,27 @@ func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<
 	wg.Add(len(pods))
 	errChan := make(chan error)
 	logCmd := append(kubectl, "logs")
-	if opts.Follow {
-		logCmd = append(logCmd, "-f")
+	for k, v := range map[string]bool{
+		"--all-containers": opts.AllContainers,
+		"--follow":         opts.Follow,
+		"--prefix":         opts.Prefix,
+		"--previous":       opts.Previous,
+		"--timestamps":     opts.Timestamps,
+	} {
+		if v {
+			logCmd = append(logCmd, k)
+		}
 	}
-	if opts.AllContainers {
-		logCmd = append(logCmd, "--all-containers")
-	}
-	if opts.Timestamps {
-		logCmd = append(logCmd, "--timestamps")
-	}
-	if opts.Prefix {
-		logCmd = append(logCmd, "--prefix")
-	}
-	if opts.Previous {
-		logCmd = append(logCmd, "--previous")
-	}
-	if opts.Since != "" {
-		logCmd = append(logCmd, "--since", opts.Since)
-	}
-	if opts.SinceTime != "" {
-		logCmd = append(logCmd, "--since-time", opts.SinceTime)
-	}
-	if opts.Tail != "" {
-		logCmd = append(logCmd, "--tail", opts.Tail)
-	}
-	if opts.Container != "" {
-		logCmd = append(logCmd, "-c", opts.Container)
-	}
-	if opts.LimitBytes != "" {
-		logCmd = append(logCmd, "--limit-bytes", opts.LimitBytes)
+	for k, v := range map[string]string{
+		"--container":   opts.Container,
+		"--limit-bytes": opts.LimitBytes,
+		"--since":       opts.Since,
+		"--since-time":  opts.SinceTime,
+		"--tail":        opts.Tail,
+	} {
+		if v != "" {
+			kubectl = append(kubectl, k, v)
+		}
 	}
 	for i, p := range pods {
 		podLogCmd := append(logCmd, "-n", p.Namespace, p.Name)
@@ -148,11 +139,10 @@ func Read(ctx context.Context, opts *args.Args, ex exec.Executor, tty string) (<
 		}
 		prettyJSON := opts.JSON && tty != ""
 		numParts := 1
-		if opts.Prefix {
-			numParts++
-		}
-		if opts.Timestamps {
-			numParts++
+		for _, b := range []bool{opts.Prefix, opts.Timestamps} {
+			if b {
+				numParts++
+			}
 		}
 		go func(ch <-chan string) {
 			for {

@@ -73,6 +73,19 @@ func TestStream(t *testing.T) {
 				require.NoError(t, <-errChan)
 			},
 		},
+		{
+			it:   "supports reading large lines of output",
+			args: []string{"sh", "-c", "head -c 1000000 < /dev/zero"},
+			assert: func(t *testing.T, ch <-chan string, err error, errChan chan error) {
+				require.NoError(t, err)
+				longLine := <-ch
+				require.Equal(t, 1000000, len(longLine))
+				for _, c := range longLine {
+					require.Equal(t, 0, int(c))
+				}
+				require.NoError(t, <-errChan)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.it, func(t *testing.T) {

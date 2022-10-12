@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os/exec"
 	"strings"
 )
@@ -43,12 +44,30 @@ func (e *executor) Stream(ctx context.Context, errChan chan<- error, cmdAndArgs 
 	if err = c.Start(); err != nil {
 		return nil, err
 	}
-	sc := bufio.NewScanner(out)
+	rd := bufio.NewReader(out)
 	go func() {
-		for sc.Scan() {
-			ch <- sc.Text()
+		var (
+			chunk    []byte
+			isPrefix bool
+			err      error
+			buf      strings.Builder
+		)
+		for err == nil {
+			chunk, isPrefix, err = rd.ReadLine()
+			if err != nil {
+				break
+			}
+			buf.Write(chunk)
+			if !isPrefix {
+				ch <- buf.String()
+				buf = strings.Builder{}
+			}
 		}
-		errChan <- sc.Err()
+		if err == io.EOF {
+			errChan <- nil
+		} else {
+			errChan <- err
+		}
 		if err = c.Wait(); err != nil {
 			errChan <- errors.New(errBuf.String())
 		}
